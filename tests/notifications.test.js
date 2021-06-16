@@ -9,9 +9,10 @@ describe('notifications', function ( ) {
 
   var ctx = {
     bus: new Stream
-    , data: {
+    , ddata: {
       lastUpdated: Date.now()
     }
+    , levels: levels
   };
 
   var notifications = require('../lib/notifications')(env, ctx);

@@ -4,44 +4,45 @@ var levels = require('../lib/levels');
 
 describe('errorcodes', function ( ) {
 
-  var errorcodes = require('../lib/plugins/errorcodes')();
-
   var now = Date.now();
-  var env = require('../env')();
+  var env = require('../lib/server/env')();
   var ctx = {};
-  ctx.data = require('../lib/data')(env, ctx);
+  ctx.ddata = require('../lib/data/ddata')();
   ctx.notifications = require('../lib/notifications')(env, ctx);
+  ctx.language = require('../lib/language')();
+  ctx.levels = levels;
 
+  var errorcodes = require('../lib/plugins/errorcodes')(ctx);
 
   it('Not trigger an alarm when in range', function (done) {
     ctx.notifications.initRequests();
-    ctx.data.sgvs = [{mgdl: 100, mills: now}];
+    ctx.ddata.sgvs = [{mgdl: 100, mills: now}];
 
     var sbx = require('../lib/sandbox')().serverInit(env, ctx);
     errorcodes.checkNotifications(sbx);
-    should.not.exist(ctx.notifications.findHighestAlarm());
+    should.not.exist(ctx.notifications.findHighestAlarm('CGM Error Code'));
 
     done();
   });
 
   it('should trigger a urgent alarm when ???', function (done) {
     ctx.notifications.initRequests();
-    ctx.data.sgvs = [{mgdl: 10, mills: now}];
+    ctx.ddata.sgvs = [{mgdl: 10, mills: now}];
 
     var sbx = require('../lib/sandbox')().serverInit(env, ctx);
     errorcodes.checkNotifications(sbx);
-    ctx.notifications.findHighestAlarm().level.should.equal(levels.URGENT);
+    ctx.notifications.findHighestAlarm('CGM Error Code').level.should.equal(levels.URGENT);
 
     done();
   });
 
   it('should trigger a urgent alarm when hourglass', function (done) {
     ctx.notifications.initRequests();
-    ctx.data.sgvs = [{mgdl: 9, mills: now}];
+    ctx.ddata.sgvs = [{mgdl: 9, mills: now}];
 
     var sbx = require('../lib/sandbox')().serverInit(env, ctx);
     errorcodes.checkNotifications(sbx);
-    var findHighestAlarm = ctx.notifications.findHighestAlarm();
+    var findHighestAlarm = ctx.notifications.findHighestAlarm('CGM Error Code');
     findHighestAlarm.level.should.equal(levels.URGENT);
     findHighestAlarm.pushoverSound.should.equal('alien');
 
@@ -50,11 +51,11 @@ describe('errorcodes', function ( ) {
 
   it('should trigger a low notification when needing calibration', function (done) {
     ctx.notifications.initRequests();
-    ctx.data.sgvs = [{mgdl: 5, mills: now}];
+    ctx.ddata.sgvs = [{mgdl: 5, mills: now}];
 
     var sbx = require('../lib/sandbox')().serverInit(env, ctx);
     errorcodes.checkNotifications(sbx);
-    should.not.exist(ctx.notifications.findHighestAlarm());
+    should.not.exist(ctx.notifications.findHighestAlarm('CGM Error Code'));
     var info = _.first(ctx.notifications.findUnSnoozeable());
     info.level.should.equal(levels.INFO);
     info.pushoverSound.should.equal('intermission');
@@ -66,11 +67,11 @@ describe('errorcodes', function ( ) {
 
     for (var i = 1; i < 9; i++) {
       ctx.notifications.initRequests();
-      ctx.data.sgvs = [{mgdl: i, mills: now}];
+      ctx.ddata.sgvs = [{mgdl: i, mills: now}];
 
       var sbx = require('../lib/sandbox')().serverInit(env, ctx);
       errorcodes.checkNotifications(sbx);
-      should.not.exist(ctx.notifications.findHighestAlarm());
+      should.not.exist(ctx.notifications.findHighestAlarm('CGM Error Code'));
       _.first(ctx.notifications.findUnSnoozeable()).level.should.be.lessThan(levels.WARN);
     }
     done();
